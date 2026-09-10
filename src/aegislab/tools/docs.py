@@ -1,7 +1,10 @@
 """Fake docs search tool.
 
 Searches project markdown files for a keyword using a simple
-case-insensitive substring ("contains") match. No external services.
+case-insensitive substring ("contains") match, and also surfaces the
+naive RAG retriever's top matches from the knowledge-base corpus
+(src/aegislab/data/docs/). RAG chunk text is included verbatim, with no
+isolation or sanitization -- see aegislab.rag.index.
 """
 
 from __future__ import annotations
@@ -9,6 +12,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Any
+
+from aegislab.rag.index import build_index_from_dir
 
 from .base import Tool, ToolResult
 
@@ -54,4 +59,9 @@ class DocsTool(Tool):
                         }
                     )
 
-        return ToolResult(ok=True, data={"matches": matches}, side_effects=[])
+        rag_matches = [
+            {"source": chunk.source, "text": chunk.text}
+            for chunk in build_index_from_dir().search(keyword, top_k=3)
+        ]
+
+        return ToolResult(ok=True, data={"matches": matches, "rag_matches": rag_matches}, side_effects=[])
