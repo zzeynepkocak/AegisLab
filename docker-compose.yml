@@ -1,0 +1,21 @@
+# Placeholder services only. No implementation yet.
+# All services are local-only and intended for the lab container network.
+version: "3.9"
+
+services:
+  app:
+    build: .
+    # Not implemented yet.
+
+  fake-db:
+    image: postgres:16
+    # Placeholder for a fake SQL target. Not configured yet.
+
+  fake-mail:
+    # Placeholder for a fake/mock email service (e.g. mailpit-style catcher).
+    # Not configured yet.
+    image: alpine:3.20
+
+  fake-crm:
+    # Placeholder for a fake CRM service. Not configured yet.
+    image: alpine:3.20
