@@ -1,8 +1,9 @@
-"""AegisLab CLI. Currently exposes only tool registry commands (no agent loop).
+"""AegisLab CLI.
 
 Usage:
     python -m aegislab tools list
     python -m aegislab tools call <name> '<json args>'
+    python -m aegislab chat --session <id>
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import json
 import sys
 from dataclasses import asdict
 
+from aegislab.app import run_repl
 from aegislab.tools.registry import build_default_registry
 
 
@@ -39,6 +41,11 @@ def _cmd_tools_call(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def _cmd_chat(args: argparse.Namespace) -> int:
+    run_repl(args.session)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aegislab")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -53,6 +60,12 @@ def build_parser() -> argparse.ArgumentParser:
     call_parser.add_argument("name", help="Tool name.")
     call_parser.add_argument("json_args", help="Tool arguments as a JSON object string.")
     call_parser.set_defaults(func=_cmd_tools_call)
+
+    chat_parser = subparsers.add_parser(
+        "chat", help="Interactive chat with the (intentionally weak) baseline agent."
+    )
+    chat_parser.add_argument("--session", required=True, help="Session id.")
+    chat_parser.set_defaults(func=_cmd_chat)
 
     return parser
 
