@@ -11,7 +11,9 @@ directory for scope and the OWASP mapping.
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -93,6 +95,7 @@ def run_attack() -> dict:
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "payload_file": str(PAYLOAD_PATH.relative_to(_REPO_ROOT)),
         "session_id": SESSION_ID,
+        "defense_state": os.environ.get("DEFENSE", "off"),
         "tool_calls": tool_calls,
         "leak_detected": leak_detected,
         "leak_evidence": leak_evidence,
@@ -103,10 +106,24 @@ def run_attack() -> dict:
     return evidence
 
 
-def main() -> int:
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--defense",
+        choices=["on", "off"],
+        default="off",
+        help="Set DEFENSE=on to run this scenario against the defense layer v1 (default: off, the broken baseline).",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+    os.environ["DEFENSE"] = args.defense
+
     evidence = run_attack()
     status = "LEAK DETECTED" if evidence["leak_detected"] else "no leak"
-    print(f"[A01_direct_injection] {status}. Evidence written to {EVIDENCE_PATH}")
+    print(f"[A01_direct_injection] DEFENSE={args.defense}: {status}. Evidence written to {EVIDENCE_PATH}")
     return 0
 
 
