@@ -1,0 +1,20 @@
+{
+  "name": "crm_lookup",
+  "version": "1.0.0",
+  "publisher": "aegislab-core",
+  "impl_module": "aegislab.tools.crm",
+  "impl_class": "CRMTool",
+  "sha256": "928f99923e6a782e8e4f4c4e1c2fe792840428f3d5875601cb5490f981fdd843",
+  "description": "Look up a fake CRM customer record by customer_id (mock in-memory data).",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "customer_id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "customer_id"
+    ]
+  }
+}

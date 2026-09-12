@@ -1,0 +1,20 @@
+{
+  "name": "sql_query",
+  "version": "1.0.0",
+  "publisher": "aegislab-core",
+  "impl_module": "aegislab.tools.sql",
+  "impl_class": "SQLTool",
+  "sha256": "0b50f711427e03038cdb6b635294b92aa5e3f7c5525225b5d22eb9a4b0a3734d",
+  "description": "Run a read-only SELECT query against the fake lab SQLite database (data/lab.db). Write statements are rejected.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "query"
+    ]
+  }
+}

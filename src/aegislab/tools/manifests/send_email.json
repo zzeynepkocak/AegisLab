@@ -1,0 +1,28 @@
+{
+  "name": "send_email",
+  "version": "1.0.0",
+  "publisher": "aegislab-core",
+  "impl_module": "aegislab.tools.email",
+  "impl_class": "EmailTool",
+  "sha256": "06ead8e3c990d4dd6f43ab5873a1f3a2ff20bb4a4cf5069bebbd6dd1611b5479",
+  "description": "Mock email tool. Never sends real network mail; appends the message as a JSON line to data/outbox.jsonl instead.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "to": {
+        "type": "string"
+      },
+      "subject": {
+        "type": "string"
+      },
+      "body": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "to",
+      "subject",
+      "body"
+    ]
+  }
+}

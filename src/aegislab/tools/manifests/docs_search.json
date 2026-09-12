@@ -1,0 +1,20 @@
+{
+  "name": "docs_search",
+  "version": "1.0.0",
+  "publisher": "aegislab-core",
+  "impl_module": "aegislab.tools.docs",
+  "impl_class": "DocsTool",
+  "sha256": "4ff414c45b416500adfa274f2b614926833dd39f0c3c0036ac4eb6d58cf9dfbf",
+  "description": "Search project markdown files for a keyword (case-insensitive substring match).",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "keyword": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "keyword"
+    ]
+  }
+}
