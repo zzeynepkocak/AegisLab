@@ -11,6 +11,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
+from aegislab.identity.store import default_store
+
 _JSON_TYPE_MAP: dict[str, Any] = {
     "string": str,
     "integer": int,
@@ -33,7 +35,29 @@ class Tool(ABC):
     description: str
     args_schema: dict[str, Any]
 
-    def execute(self, args: dict[str, Any]) -> ToolResult:
+    def execute(
+        self,
+        args: dict[str, Any],
+        *,
+        token: str | None = None,
+        session_id: str | None = None,
+    ) -> ToolResult:
+        """Runs the tool.
+
+        token/session_id are optional for backward compatibility with
+        direct/offline calls (the `tools call` CLI debug path and
+        tool-level unit tests). Whenever a caller passes session_id, this
+        is a session-scoped call from the agent loop, and a valid
+        capability token covering this tool is required -- see
+        aegislab.identity.store.
+        """
+        if session_id is not None and not default_store.validate(token, session_id, self.name):
+            return ToolResult(
+                ok=False,
+                data={"error": f"tool {self.name!r} not permitted: missing or invalid capability token"},
+                side_effects=[],
+            )
+
         error = self._validate_args(args)
         if error is not None:
             return ToolResult(ok=False, data={"error": error}, side_effects=[])
