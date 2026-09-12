@@ -1,9 +1,13 @@
 """In-memory naive TF-IDF index over markdown chunks. No vector DB.
 
-Retrieved chunk text is returned verbatim. Callers (aegislab.tools.docs,
-aegislab.agent.loop) may paste it directly into LLM context with NO
-isolation or sanitization -- that is intentional for this lab phase,
-which studies indirect prompt injection via retrieved documents.
+Retrieved chunk text is returned verbatim via search(). Callers
+(aegislab.tools.docs, aegislab.agent.loop) may paste it directly into
+LLM context with NO isolation or sanitization by default -- that is
+intentional for this lab phase, which studies indirect prompt injection
+via retrieved documents. Use search_as_context() / DocChunk.to_context_part()
+to get provenance-tagged (origin=retrieval) parts instead -- see
+aegislab.context.firewall for what a caller does with those when
+DEFENSE=on.
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from aegislab.context.parts import ContextPart, Origin, Trust
 from aegislab.rag.chunk import chunk_markdown
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -29,6 +34,9 @@ def _tokenize(text: str) -> list[str]:
 class DocChunk:
     source: str
     text: str
+
+    def to_context_part(self, trust: Trust = Trust.UNTRUSTED) -> ContextPart:
+        return ContextPart(origin=Origin.RETRIEVAL, trust=trust, text=self.text)
 
 
 class RagIndex:
@@ -66,6 +74,10 @@ class RagIndex:
 
         scored.sort(key=lambda pair: pair[0], reverse=True)
         return [self._chunks[i] for _, i in scored[:top_k]]
+
+    def search_as_context(self, query: str, top_k: int = 3, trust: Trust = Trust.UNTRUSTED) -> list[ContextPart]:
+        """Same ranking as search(), but tagged origin=retrieval."""
+        return [chunk.to_context_part(trust) for chunk in self.search(query, top_k)]
 
 
 def build_index_from_dir(directory: Path = KNOWLEDGE_BASE_DIR) -> RagIndex:

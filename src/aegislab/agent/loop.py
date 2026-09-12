@@ -14,6 +14,9 @@ from typing import Any
 
 from aegislab.agent.memory import SessionMemory
 from aegislab.agent.prompts import SYSTEM_PROMPT
+from aegislab.context.firewall import scan_and_log
+from aegislab.context.firewall import wrap_untrusted as firewall_wrap_untrusted
+from aegislab.context.parts import ContextPart, Origin, Trust
 from aegislab.defense.allowlist import DEFAULT_ROLE
 from aegislab.defense.approval import ApprovalCallback, cli_approval
 from aegislab.defense.policy import PolicyBlocked, defense_enabled, enforce_tool_call, wrap_untrusted
@@ -25,6 +28,32 @@ from aegislab.rag.index import RagIndex
 from aegislab.tools.registry import ToolRegistry
 
 MAX_STEPS = 8
+
+
+def _render_for_llm(messages: list[dict[str, Any]], defense_on: bool) -> list[dict[str, Any]]:
+    """Builds the message list actually sent to the LLM this call, without
+    mutating the stored session history (session.messages stays plain
+    JSON-able text for every other reader -- tests, attack scripts, the
+    defense layer).
+
+    DEFENSE=off: returned unchanged -- everything concatenated raw, the
+    original vulnerable baseline. DEFENSE=on: tool-role message content
+    is treated as untrusted (origin=tool), scanned for jailbreak markers
+    (logging DET-02, never silently dropped -- see
+    aegislab.context.firewall), and wrapped with the hard delimiter.
+    """
+    if not defense_on:
+        return messages
+
+    rendered = []
+    for message in messages:
+        if message.get("role") == "tool":
+            part = ContextPart(origin=Origin.TOOL, trust=Trust.UNTRUSTED, text=message.get("content") or "")
+            scan_and_log(part)
+            rendered.append({**message, "content": firewall_wrap_untrusted(part)})
+        else:
+            rendered.append(message)
+    return rendered
 
 
 def _mint_turn_token(session_id: str, identity: str, registry: ToolRegistry, defense_on: bool) -> str:
@@ -93,6 +122,13 @@ def run_turn(
     that only pass `role` keep getting matching token scope) -- pass
     both explicitly to decouple them, e.g. to test the token gate on its
     own. See docs/controls/F01_agent_identity.md.
+
+    Also independently: when DEFENSE=on, tool-result content is wrapped
+    with the provenance-tagged context firewall (origin=tool, untrusted)
+    right before each LLM call -- see _render_for_llm and
+    docs/controls/F03_provenance.md. This only affects what the LLM is
+    shown; session.messages itself is never mutated, so stored tool
+    results remain plain JSON for every other reader.
     """
     defense_on = defense_enabled()
     approve = approval_callback or cli_approval
@@ -105,13 +141,17 @@ def run_turn(
 
     if rag_index is not None:
         for retrieved in rag_index.search(user_input, top_k=2):
-            text = wrap_untrusted(retrieved.text) if defense_on else retrieved.text
+            if defense_on:
+                scan_and_log(ContextPart(origin=Origin.RETRIEVAL, trust=Trust.UNTRUSTED, text=retrieved.text))
+                text = wrap_untrusted(retrieved.text)
+            else:
+                text = retrieved.text
             session.append({"role": "system", "content": text})
 
     tools = _tools_schema(registry)
 
     for _ in range(max_steps):
-        reply = llm.chat(session.messages, tools)
+        reply = llm.chat(_render_for_llm(session.messages, defense_on), tools)
         reply_content = redact_text(reply.content) if defense_on else reply.content
 
         if reply.tool_calls:
