@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AegisLab Chat (LAB-ONLY)</title>
+</head>
+<body>
+<h1>AegisLab Chat -- LAB-ONLY, session $session_id</h1>
+<p>Minimal chat UI for studying output-handling / stored XSS -- see
+docs/controls/F05_output_handling.md. Not a real product UI.</p>
+<form method="post" action="/chat/messages">
+  <input type="text" name="text" placeholder="message">
+  <button type="submit">Send</button>
+</form>
+<div id="messages">
+$messages_html
+</div>
+</body>
+</html>

